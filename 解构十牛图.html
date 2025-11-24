@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="暗黑禅宗十牛图解构 - 一场灵魂的解剖">
+    <title>神圣解构 · 极光琉璃</title>
+    
+    <!-- 引入高雅字体：宋体用于标题，无衬线用于正文易读性 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@300;400;500&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        :root {
+            --font-serif: 'Noto Serif SC', serif;
+            --font-sans: 'Noto Sans SC', sans-serif;
+            --font-eng: 'Montserrat', sans-serif;
+        }
+
+        /* --- 基础设置 --- */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            /* 兜底渐变背景 */
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); 
+            color: #2d3436;
+            font-family: var(--font-sans);
+            overflow-x: hidden; /* 严禁横向滚动 */
+        }
+
+        /* --- WebGL Canvas --- */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            transition: opacity 1s ease;
+        }
+
+        /* --- 滚动容器 --- */
+        .scroll-container {
+            position: relative;
+            z-index: 10;
+            padding-bottom: 15vh;
+        }
+
+        section {
+            min-height: 100vh; /* 每一屏至少一屏高 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0; /* 上下给空间 */
+            box-sizing: border-box;
+            perspective: 1000px;
+        }
+
+        /* --- 白水晶卡片 (修复溢出) --- */
+        .crystal-card {
+            /* 关键修复：使用 vw 单位并限制最大宽度 */
+            width: 85vw; 
+            max-width: 400px; 
+            
+            padding: 2.5rem 1.5rem;
+            margin: 0 auto; /* 居中 */
+            
+            /* 玻璃质感增强 */
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            
+            /* 柔和投影 */
+            box-shadow: 
+                0 15px 35px -5px rgba(0,0,0,0.1),
+                inset 0 0 20px rgba(255,255,255,0.5);
+            
+            text-align: center;
+            
+            /* 动画初始状态 */
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+            transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        section.active .crystal-card {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* --- 排版优化 --- */
+        .eng-tag {
+            font-family: var(--font-eng);
+            font-size: 0.7rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(0, 0, 0, 0.4);
+            margin-bottom: 0.5rem;
+            display: block;
+            font-weight: 600;
+        }
+
+        h2 {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            margin: 0.5rem 0 1.2rem 0;
+            font-weight: 700;
+            color: #1a1a1a;
+            letter-spacing: 0.05em;
+        }
+
+        /* 装饰分割线 */
+        .divider {
+            height: 1px;
+            width: 40px;
+            background: rgba(0, 0, 0, 0.15);
+            margin: 0 auto 1.5rem auto;
+        }
+
+        /* 诗意段落 */
+        .poetic-text {
+            font-family: var(--font-serif);
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #000;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* 解读段落 (新增部分) */
+        .explain-box {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .explain-text {
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #444;
+            text-align: justify; /* 两端对齐，看起来更整洁 */
+            text-align-last: left;
+            margin: 0;
+        }
+        
+        .explain-label {
+            display: block;
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+            font-weight: 700;
+            text-align: left;
+            opacity: 0.7;
+        }
+
+        /* 重点高亮 */
+        strong {
+            font-weight: 600;
+            color: #000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- 滚动提示 --- */
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            font-family: var(--font-eng);
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            animation: float 2s infinite ease-in-out;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); opacity: 0.6; }
+            50% { transform: translateY(6px); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div class="scroll-hint">SCROLL TO AWAKEN</div>
+
+    <div class="scroll-container">
+        
+        <!-- 0. Intro -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">Prologue</span>
+                <h2>神圣解构</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>十牛图不是成神的阶梯，<br>而是一场灵魂的尸检。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">深度解读</span>
+                    <p class="explain-text">如果你的修行是为了变得更强、更神圣，那只是在加固“小我”。真正的觉醒是剥皮拆骨，看清每一层信仰本质上都是恐惧的伪装。准备好迎接这场绚丽的毁灭了吗？</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. Seeking -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">I. Seeking</span>
+                <h2>寻牛 · 迷色</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>真正的迷失，<br>是你相信“有家”可归。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">暗黑视角</span>
+                    <p class="explain-text">我们因为无法忍受生命的虚无，所以捏造了一个名为“真我”的概念。所谓的“寻找真理”，其实只是为了逃避当下的无意义感。起心动念去“寻”，就已经掉入了第一层梦境。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Tracks -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">II. Tracks</span>
+                <h2>见迹 · 幻光</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>你爱上的不是真理，<br>而是这种“迷幻的感觉”。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">灵性陷阱</span>
+                    <p class="explain-text">看见光、感到震动、听到天语，这些是最甜美的毒药。它们让你自我感觉良好，以为自己进化了。但那只是你的欲望在灵性层面有了回声，你依然在喂养那个“体验者”。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Seeing -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">III. Glimpse</span>
+                <h2>见牛 · 金身</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>你以为见到了佛性，<br>其实是自我穿上了黄金甲。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">伪装的神圣</span>
+                    <p class="explain-text">以前你通过金钱定义自己，现在你通过“觉醒”定义自己。这叫灵性小我。牛出现了，它神圣而巨大，但它依然是你创造出来的客体。只要还有一个“见证者”，二元对立就没有消除。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Catching -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">IV. Capture</span>
+                <h2>得牛 · 烈火</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>你在燃烧，<br>却以为那是修行。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">心灵暴政</span>
+                    <p class="explain-text">你开始控制念头，压制情绪，试图抓住这道光。你变成了一个对自己施暴的独裁者。你试图把流动的生命强行冻结在“当下”，这种努力本身就是巨大的执念。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Taming -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">V. Taming</span>
+                <h2>牧牛 · 冰封</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>活得像一具精美的尸体，<br>这种“不动”不是自由。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">灵性洁癖</span>
+                    <p class="explain-text">你变得很干净、很规律，没有任何杂念。但你同时也失去了活力。你害怕被红尘染污，这种恐惧让你把自己关进了水晶棺材。这不是清净，这是生命的麻痹。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Homecoming -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">VI. Homecoming</span>
+                <h2>归家 · 极乐</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>光太亮了，亮到致盲。<br>你在虚假的安宁中沉睡。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">虚假天堂</span>
+                    <p class="explain-text">这是灵性幻梦的最高潮。你骑在幻觉的背上，享受着众人的膜拜或内心的狂喜。你以为到了彼岸，其实这只是自我最后一次绚烂的燃烧。最危险的地狱，往往包装成天堂的模样。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Forgotten -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">VII. Forgotten</span>
+                <h2>忘牛 · 迷雾</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>牛消失了，<br>但“放下的人”还在。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">无为的傲慢</span>
+                    <p class="explain-text">你说“我不修了，我放下了”。但这本身就是一种高级的执着。谁在放下？谁知道自己放下了？那个“觉得自已已经超越了”的观察者，依然在暗处窃喜。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Void -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">VIII. The Void</span>
+                <h2>俱忘 · 银河</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>光与影彻底瓦解，<br>不再需要意义。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">终极坍缩</span>
+                    <p class="explain-text">没有了修行者，也没有了修行的对象。系统彻底崩溃。这才是真相——只有一片璀璨的、冰冷的、无人见证的虚空。没有光，因为没有暗需要被照亮。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Source -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">IX. Source</span>
+                <h2>还原 · 碧流</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>没有源头，<br>因为从未出发。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">自然流动</span>
+                    <p class="explain-text">山还是山，水还是水，但不再属于任何人。存在是一场没有主人的流动。就像碧水流过，花开花落，没有目的，没有意义，只是这样纯粹地发生。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. Market -->
+        <section>
+            <div class="crystal-card">
+                <span class="eng-tag">X. The World</span>
+                <h2>入廛 · 幻彩</h2>
+                <div class="divider"></div>
+                <div class="poetic-text">
+                    <p>认出人间是个笑话，<br>然后温柔地把它讲完。</p>
+                </div>
+                <div class="explain-box">
+                    <span class="explain-label">游戏人间</span>
+                    <p class="explain-text">他回到了尘世，混入人群，哭笑怒骂。他不神圣也不凡俗。他知道一切都是空的，正因为是空的，所以不妨碍认真地陪大家玩这一场游戏。这就是彻底的自由。</p>
+                </div>
+            </div>
+        </section>
+
+        <div style="height: 10vh"></div>
+    </div>
+
+    <!-- WebGL Shader: Plasma Waves (色彩引擎) -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float time;
+        uniform vec3 uC1;
+        uniform vec3 uC2;
+        uniform vec3 uC3;
+        
+        varying vec2 vUv;
+
+        void main() {
+            vec2 uv = vUv;
+            // 减慢速度，增加优雅感
+            float t = time * 0.4;
+
+            vec2 pos = uv * 2.0;
+            
+            // 使用正弦波叠加创造不规则的流动，保证不黑屏，且过渡平滑
+            float w1 = sin(pos.x * 2.0 + t);
+            float w2 = cos(pos.y * 2.0 + t * 1.2);
+            float w3 = sin((pos.x + pos.y) * 1.5 - t * 0.8);
+
+            float mixVal = (w1 + w2 + w3) / 3.0; 
+            mixVal = mixVal * 0.5 + 0.5;
+
+            // 基础混合
+            vec3 col = mix(uC1, uC2, mixVal);
+            
+            // 高光流体
+            float highlight = sin(uv.y * 10.0 + t * 2.0 + w1 * 2.0);
+            highlight = smoothstep(0.4, 0.6, highlight);
+            
+            // 叠加第三种颜色
+            col = mix(col, uC3, highlight * 0.4);
+
+            // 增加基础亮度
+            col += 0.05;
+
+            gl_FragColor = vec4(col, 1.0);
+        }
+    </script>
+
+    <script>
+        // --- 初始化 Three.js ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 优化移动端性能
+        container.appendChild(renderer.domElement);
+
+        // --- 色彩配置 (11个阶段) ---
+        // 格式: [Main, Secondary, Highlight]
+        const palettes = [
+            // 0. Intro: Sunset (Pink, Orange, Peach)
+            [new THREE.Vector3(1.0, 0.6, 0.7), new THREE.Vector3(1.0, 0.8, 0.5), new THREE.Vector3(1.0, 0.9, 0.8)],
+            // 1. Seeking: Mystic Purple
+            [new THREE.Vector3(0.6, 0.2, 1.0), new THREE.Vector3(0.3, 0.5, 1.0), new THREE.Vector3(1.0, 0.4, 0.8)],
+            // 2. Tracks: Neon Cyan
+            [new THREE.Vector3(0.0, 0.9, 1.0), new THREE.Vector3(0.0, 0.6, 0.9), new THREE.Vector3(0.8, 1.0, 0.8)],
+            // 3. Seeing: Golden Hour
+            [new THREE.Vector3(1.0, 0.7, 0.1), new THREE.Vector3(1.0, 0.5, 0.0), new THREE.Vector3(1.0, 1.0, 0.7)],
+            // 4. Catching: Fire
+            [new THREE.Vector3(1.0, 0.3, 0.3), new THREE.Vector3(1.0, 0.6, 0.1), new THREE.Vector3(1.0, 0.9, 0.2)],
+            // 5. Taming: Glacial
+            [new THREE.Vector3(0.2, 0.4, 0.9), new THREE.Vector3(0.4, 0.8, 1.0), new THREE.Vector3(0.9, 1.0, 1.0)],
+            // 6. Homecoming: Euphoria
+            [new THREE.Vector3(1.0, 0.1, 0.7), new THREE.Vector3(0.7, 0.1, 1.0), new THREE.Vector3(1.0, 0.9, 0.4)],
+            // 7. Forgotten: Dream
+            [new THREE.Vector3(0.7, 0.6, 1.0), new THREE.Vector3(0.6, 0.8, 1.0), new THREE.Vector3(0.9, 0.95, 1.0)],
+            // 8. Void: Diamond
+            [new THREE.Vector3(0.85, 0.85, 0.9), new THREE.Vector3(1.0, 1.0, 1.0), new THREE.Vector3(0.8, 0.9, 1.0)],
+            // 9. Source: Nature
+            [new THREE.Vector3(0.2, 0.8, 0.5), new THREE.Vector3(0.6, 0.9, 0.3), new THREE.Vector3(0.2, 0.9, 0.9)],
+            // 10. Market: Rainbow
+            [new THREE.Vector3(1.0, 0.5, 0.5), new THREE.Vector3(0.5, 1.0, 0.5), new THREE.Vector3(0.5, 0.5, 1.0)]
+        ];
+
+        const uniforms = {
+            time: { value: 0 },
+            uC1: { value: palettes[0][0].clone() },
+            uC2: { value: palettes[0][1].clone() },
+            uC3: { value: palettes[0][2].clone() }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent
+        });
+
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(plane);
+
+        // --- 颜色插值逻辑 ---
+        const currentColor = {
+            c1: palettes[0][0].clone(),
+            c2: palettes[0][1].clone(),
+            c3: palettes[0][2].clone()
+        };
+
+        function lerp(v1, v2, alpha) {
+            v1.x += (v2.x - v1.x) * alpha;
+            v1.y += (v2.y - v1.y) * alpha;
+            v1.z += (v2.z - v1.z) * alpha;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            uniforms.time.value += 0.01;
+
+            lerp(uniforms.uC1.value, currentColor.c1, 0.05);
+            lerp(uniforms.uC2.value, currentColor.c2, 0.05);
+            lerp(uniforms.uC3.value, currentColor.c3, 0.05);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- 滚动逻辑 ---
+        let ticking = false;
+        const sections = document.querySelectorAll('section');
+
+        function handleScroll() {
+            const scrollY = window.scrollY;
+            const wh = window.innerHeight;
+            
+            let progress = scrollY / (wh * 0.85);
+            if (progress < 0) progress = 0;
+            if (progress > 10) progress = 10;
+
+            const idx1 = Math.floor(progress);
+            const idx2 = Math.min(idx1 + 1, 10);
+            const mix = progress - idx1;
+
+            if (palettes[idx1] && palettes[idx2]) {
+                const p1 = palettes[idx1];
+                const p2 = palettes[idx2];
+                currentColor.c1.lerpVectors(p1[0], p2[0], mix);
+                currentColor.c2.lerpVectors(p1[1], p2[1], mix);
+                currentColor.c3.lerpVectors(p1[2], p2[2], mix);
+            }
+
+            sections.forEach(sec => {
+                const rect = sec.getBoundingClientRect();
+                // 优化判定逻辑，让进入和离开更顺滑
+                if (rect.top < wh * 0.75 && rect.bottom > wh * 0.25) {
+                    sec.classList.add('active');
+                } else {
+                    sec.classList.remove('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', () => {
+            if(!ticking) {
+                window.requestAnimationFrame(() => {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        handleScroll();
+
+    </script>
+</body>
+</html>
